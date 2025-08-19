@@ -1,4 +1,4 @@
-name: Build PR 34 with Visual Studio
+name: Build PR 34 with Visual Studio (Fixed)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019  # Eski Windows sürümü kullan
     
     steps:
     - name: Checkout Endundro's PR branch
@@ -18,15 +18,17 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
       
-    - name: Setup Visual Studio Developer Command Prompt
+    - name: Setup Visual Studio 2019
       uses: ilammy/msvc-dev-cmd@v1
+      with:
+        vsversion: 2019
         
     - name: Create build directory
       run: mkdir build
       
-    - name: Configure with CMake
+    - name: Configure with CMake (x86)
       working-directory: build
-      run: cmake .. -G "Visual Studio 17 2022" -A x64
+      run: cmake .. -G "Visual Studio 16 2019" -A Win32 -DCMAKE_GENERATOR_PLATFORM=Win32
       
     - name: Build project
       working-directory: build
@@ -35,22 +37,11 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: awesome-wotlk-pr34-msvc-build
+        name: awesome-wotlk-pr34-fixed-build
         path: |
           build/Release/*.exe
           build/Release/*.dll
-          build/**/*.exe
-          build/**/*.dll
+          build/*.exe
+          build/*.dll
         retention-days: 7
       if: always()
-      
-    - name: Upload debug artifacts (if build fails)
-      uses: actions/upload-artifact@v4
-      with:
-        name: awesome-wotlk-pr34-debug-logs
-        path: |
-          build/**/*.log
-          build/CMakeCache.txt
-          build/CMakeFiles/**
-        retention-days: 3
-      if: failure()
