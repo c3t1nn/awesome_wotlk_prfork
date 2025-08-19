@@ -1,4 +1,4 @@
-name: Build PR 34 (Final Fix)
+name: Build PR 34 (Error-Free)
 
 on:
   workflow_dispatch:
@@ -19,21 +19,26 @@ jobs:
     - name: Setup Visual Studio
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: x64
+        arch: x86  # x64 yerine x86 kullan
         
-    - name: Fix Detours compatibility
+    - name: Fix Detours Interlocked Functions
       run: |
-        echo '#include <intrin.h>' > fix_intrinsics.h
-        echo '#pragma intrinsic(_InterlockedExchangeAdd)' >> fix_intrinsics.h
-        echo '#pragma intrinsic(_InterlockedCompareExchange)' >> fix_intrinsics.h
-        echo '#pragma intrinsic(_InterlockedCompareExchange64)' >> fix_intrinsics.h
-        copy fix_intrinsics.h deps\Detours\
+        echo "#define NOWINBASEINTERLOCK" > detours_fix.h
+        echo "#include <intrin.h>" >> detours_fix.h
+        echo "#pragma intrinsic(_InterlockedExchangeAdd)" >> detours_fix.h
+        echo "#pragma intrinsic(_InterlockedCompareExchange)" >> detours_fix.h
+        echo "#pragma intrinsic(_InterlockedCompareExchange64)" >> detours_fix.h
         
-    - name: Configure with CMake
+        # Detours modules.cpp dosyasının başına ekle
+        $content = Get-Content "deps\Detours\modules.cpp" -Raw
+        $fixedContent = "#include `"../../detours_fix.h`"`n" + $content
+        Set-Content "deps\Detours\modules.cpp" $fixedContent
+        
+    - name: Configure with CMake (x86)
       run: |
         mkdir build
         cd build
-        cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_CXX_FLAGS="/D_WIN32_WINNT=0x0601"
+        cmake .. -G "Visual Studio 17 2022" -A Win32 -DCMAKE_CXX_FLAGS="/DNOWINBASEINTERLOCK /D_WIN32_WINNT=0x0601"
         
     - name: Build project
       run: |
@@ -43,9 +48,8 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: awesome-wotlk-pr34-final
+        name: awesome-wotlk-pr34-error-free
         path: |
           build/Release/*.exe
           build/Release/*.dll
         retention-days: 7
-      if: always()
