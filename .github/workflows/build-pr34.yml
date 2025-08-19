@@ -1,4 +1,4 @@
-name: Build PR 34 with Visual Studio (Fixed)
+name: Build PR 34 (Final Fix)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019  # Eski Windows sürümü kullan
+    runs-on: windows-latest
     
     steps:
     - name: Checkout Endundro's PR branch
@@ -14,34 +14,38 @@ jobs:
       with:
         repository: Endundro/awesome_wotlk
         ref: epoch-ascension
+        submodules: recursive
         
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
-      
-    - name: Setup Visual Studio 2019
+    - name: Setup Visual Studio
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        vsversion: 2019
+        arch: x64
         
-    - name: Create build directory
-      run: mkdir build
-      
-    - name: Configure with CMake (x86)
-      working-directory: build
-      run: cmake .. -G "Visual Studio 16 2019" -A Win32 -DCMAKE_GENERATOR_PLATFORM=Win32
-      
+    - name: Fix Detours compatibility
+      run: |
+        echo '#include <intrin.h>' > fix_intrinsics.h
+        echo '#pragma intrinsic(_InterlockedExchangeAdd)' >> fix_intrinsics.h
+        echo '#pragma intrinsic(_InterlockedCompareExchange)' >> fix_intrinsics.h
+        echo '#pragma intrinsic(_InterlockedCompareExchange64)' >> fix_intrinsics.h
+        copy fix_intrinsics.h deps\Detours\
+        
+    - name: Configure with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_CXX_FLAGS="/D_WIN32_WINNT=0x0601"
+        
     - name: Build project
-      working-directory: build
-      run: cmake --build . --config Release
+      run: |
+        cd build
+        cmake --build . --config Release --parallel
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: awesome-wotlk-pr34-fixed-build
+        name: awesome-wotlk-pr34-final
         path: |
           build/Release/*.exe
           build/Release/*.dll
-          build/*.exe
-          build/*.dll
         retention-days: 7
       if: always()
