@@ -1,0 +1,45 @@
+name: Build PR 34
+
+on:
+  workflow_dispatch:  # Manuel tetikleme
+  push:              # Her commit'te
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Fetch PR 34
+      run: |
+        git fetch origin pull/34/head:pr-34
+        git checkout pr-34
+        
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-make
+          
+    - name: Build project
+      shell: msys2 {0}
+      run: |
+        mkdir build
+        cd build
+        cmake -G "MinGW Makefiles" ..
+        mingw32-make
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: awesome-wotlk-pr34-build
+        path: |
+          build/*.exe
+          build/*.dll
+          **/*.dll
+        retention-days: 7
