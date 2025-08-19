@@ -1,21 +1,19 @@
 name: Build PR 34
 
 on:
-  workflow_dispatch:  # Manuel tetikleme
-  push:              # Her commit'te
+  workflow_dispatch:
+  push:
 
 jobs:
   build:
     runs-on: windows-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout Endundro's PR branch
       uses: actions/checkout@v4
-      
-    - name: Fetch PR 34
-      run: |
-        git fetch origin pull/34/head:pr-34
-        git checkout pr-34
+      with:
+        repository: Endundro/awesome_wotlk
+        ref: epoch-ascension
         
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
@@ -41,5 +39,4 @@ jobs:
         path: |
           build/*.exe
           build/*.dll
-          **/*.dll
         retention-days: 7
